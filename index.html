@@ -242,12 +242,27 @@
             border-bottom-color: #3182ce;
             color: #3182ce;
         }
+        /* Aviso de disponibilidade */
+        .aviso-disponibilidade {
+            background: #f0fff4;
+            border-left: 4px solid #38a169;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 15px;
+            color: #22543d;
+        }
     </style>
 </head>
 <body>
     <!-- Área Cliente -->
     <div id="area-cliente">
         <h1>📅 Agende seu Horário</h1>
+        
+        <!-- Aviso de Disponibilidade -->
+        <div class="aviso-disponibilidade">
+            ✅ <strong>Disponibilidade:</strong> Agendamentos abertos a partir de hoje — <span id="data-hoje"></span>
+        </div>
         
         <!-- Cardápio visível para o cliente -->
         <div class="card">
@@ -271,8 +286,9 @@
                     <input type="text" id="cli-nome" placeholder="Digite seu nome..." required>
                 </div>
                 <div class="grupo">
-                    <label>Data:</label>
+                    <label>Data do Atendimento:</label>
                     <input type="date" id="cli-dia" required>
+                    <small style="color:#718096;">Apenas datas a partir de hoje estão disponíveis</small>
                 </div>
                 <div class="grupo">
                     <label>Hora Desejada (cada horário = 30 min):</label>
@@ -401,6 +417,20 @@
         const CHAVE_DADOS = "agendamentos_sistema";
         const CHAVE_CARDAPIO = "cardapio_sistema";
         const DURACAO_ATENDIMENTO = 30; // minutos
+
+        // ========== FUNÇÃO PARA OBTER DATA DE HOJE EM FORMATO YYYY-MM-DD ==========
+        function getHoje() {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            return `${ano}-${mes}-${dia}`;
+        }
+
+        function formatarDataBr(dataIso) {
+            const [ano, mes, dia] = dataIso.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
 
         // ========== FUNÇÕES DE ARMAZENAMENTO ==========
         function carregarDados() {
@@ -673,8 +703,16 @@
         document.getElementById('form-cliente').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const nome = document.getElementById('cli-nome').value;
+            const hoje = getHoje();
             const dia = document.getElementById('cli-dia').value;
+            
+            // Validação extra: garantir que não seja data passada
+            if (dia < hoje) {
+                alert('❌ Não é possível agendar para datas anteriores a hoje!');
+                return;
+            }
+            
+            const nome = document.getElementById('cli-nome').value;
             const hora = document.getElementById('cli-hora').value;
             const assunto = document.getElementById('cli-assunto').value;
             const telefone = document.getElementById('cli-telefone').value;
@@ -707,7 +745,7 @@
             lista.push(novo);
             salvarDados(lista);
             
-            alert(`✅ Agendamento realizado com sucesso!\n\n📅 Data: ${dia}\n⏰ Hora: ${horaFinal}${produtoNome ? `\n🍽️ Produto: ${produtoNome}` : ''}`);
+            alert(`✅ Agendamento realizado com sucesso!\n\n📅 Data: ${formatarDataBr(dia)}\n⏰ Hora: ${horaFinal}${produtoNome ? `\n🍽️ Produto: ${produtoNome}` : ''}`);
             this.reset();
             document.getElementById('aviso-horario-sugestao').classList.add('oculto');
             produtoSelecionadoId = null;
@@ -761,7 +799,7 @@
             let html = `<table>
                 <tr>
                     <th>Cliente</th>
-                    <th>Data</th>
+                    <th>Data do Atendimento</th>
                     <th>Hora</th>
                     <th>Produto</th>
                     <th>Assunto</th>
@@ -773,7 +811,7 @@
                 html += `
                 <tr class="status-${item.status}">
                     <td><strong>${item.nome}</strong><br><small style="color:#666">${item.endereco}</small></td>
-                    <td>${item.dia}</td>
+                    <td>${formatarDataBr(item.dia)}</td>
                     <td>${item.hora}</td>
                     <td>${item.produtoNome || '<em style="color:#999">Não selecionado</em>'}</td>
                     <td>${item.assunto}</td>
@@ -818,7 +856,14 @@
         document.getElementById('filtro-hora').addEventListener('change', renderizarListaAdmin);
 
         // ========== INICIALIZAÇÃO ==========
-        renderizarCardapioCliente();
+        document.addEventListener('DOMContentLoaded', function() {
+            const hoje = getHoje();
+            // Exibir data de hoje na página
+            document.getElementById('data-hoje').textContent = formatarDataBr(hoje);
+            // Bloquear datas anteriores no campo
+            document.getElementById('cli-dia').setAttribute('min', hoje);
+            renderizarCardapioCliente();
+        });
     </script>
 </body>
 </html>
